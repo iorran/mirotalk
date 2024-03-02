@@ -145,6 +145,7 @@ const showDocumentPipBtn = !isEmbedded && 'documentPictureInPicture' in window;
  */
 const buttons = {
     main: {
+        showDisplayModeBtn: true,
         showShareRoomBtn: true,
         showHideMeBtn: true,
         showAudioBtn: true,
@@ -229,6 +230,7 @@ const initSpeakerSelect = getId('initSpeakerSelect');
 
 // Buttons bar
 const buttonsBar = getId('buttonsBar');
+const displayModeBtn = getId('displayModeBtn');
 const shareRoomBtn = getId('shareRoomBtn');
 const hideMeBtn = getId('hideMeBtn');
 const videoBtn = getId('videoBtn');
@@ -845,6 +847,7 @@ function refreshMainButtonsToolTipPlacement() {
     if (isMobileDevice) return;
     // main buttons
     placement = btnsBarSelect.options[btnsBarSelect.selectedIndex].value == 'vertical' ? 'right' : 'top';
+    setTippy(displayModeBtn, 'Share your location', placement);
     setTippy(shareRoomBtn, 'Invite others to join', placement);
     setTippy(hideMeBtn, 'Toggle hide myself from the room view', placement);
     setTippy(audioBtn, useAudio ? 'Stop the audio' : 'My audio is disabled', placement);
@@ -1315,6 +1318,7 @@ function handleRules(isPresenter) {
  */
 function handleButtonsRule() {
     // Main
+    elemDisplay(displayModeBtn, buttons.main.showDisplayModeBtn);
     elemDisplay(shareRoomBtn, buttons.main.showShareRoomBtn);
     elemDisplay(hideMeBtn, buttons.main.showHideMeBtn);
     elemDisplay(audioBtn, buttons.main.showAudioBtn);
@@ -3959,6 +3963,7 @@ function refreshMyAudioStatus(localAudioMediaStream) {
  * Handle WebRTC left buttons
  */
 function manageLeftButtons() {
+    setDisplayModeBtn();
     setShareRoomBtn();
     setHideMeButton();
     setAudioBtn();
@@ -3978,6 +3983,15 @@ function manageLeftButtons() {
     setMySettingsBtn();
     setAboutBtn();
     setLeaveRoomBtn();
+}
+
+/**
+ * Copy - display mode button click event
+ */
+function setDisplayModeBtn() {
+    displayModeBtn.addEventListener('click', async (e) => {
+        displayMode();
+    });
 }
 
 /**
@@ -5399,6 +5413,24 @@ async function shareRoomUrl() {
         }
     } else {
         shareRoomMeetingURL();
+    }
+}
+
+async function displayMode() {
+    const person = prompt('Please enter your location');
+    if (!person) {
+        return;
+    }
+    const apiKey = '65e3238255c31003179683gmx3c5bb3';
+    const endpoint = `https://geocode.maps.co/search?q=${person}&api_key=${apiKey}`;
+
+    try {
+        const response = await fetch(endpoint);
+        const result = await response.json();
+        console.log(`result:`, result);
+        emitPeersAction('displayModeStart');
+    } catch (e) {
+        console.log(e);
     }
 }
 
@@ -7899,6 +7931,9 @@ function handlePeerAction(config) {
         case 'screenStop':
             handleScreenStop(peer_id, peer_use_video);
             break;
+        case 'displayModeStart':
+            handleDisplayMode(peer_id);
+            break;
         case 'ejectAll':
             handleKickedOut(config);
             break;
@@ -7942,6 +7977,10 @@ function handleEmoji(message, duration = 5000) {
             emojiDisplay.remove();
         }, duration);
     }
+}
+
+function handleDisplayMode(peer_id) {
+    resizeVideoMedia();
 }
 
 /**
